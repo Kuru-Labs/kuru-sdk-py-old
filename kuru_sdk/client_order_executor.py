@@ -1,7 +1,6 @@
 from __future__ import annotations
 from web3 import Web3
 from web3.types import TxReceipt
-import web3.types
 from kuru_sdk.orderbook import Orderbook, TxOptions
 from typing import Dict, List, Optional, Callable, Awaitable, Any, Union
 from kuru_sdk.types import OrderCreatedEvent, OrderRequest, OrderResponse, TradeResponse, OrderRequestWithStatus
@@ -375,7 +374,7 @@ class ClientOrderExecutor:
         self.cloid_to_order_id[cloid] = order_id
         self.order_id_to_cloid[order_id] = cloid
 
-    def _set_order_status(self, order: OrderRequest, status: str, receipt: Optional[web3.types.TxReceipt] = None) -> None:
+    def _set_order_status(self, order: OrderRequest, status: str, receipt: Optional[TxReceipt] = None) -> None:
         """Safely update order status and store in cloid_to_order"""
         order.status = status
         if receipt is not None:
@@ -386,7 +385,7 @@ class ClientOrderExecutor:
         """Safely get order_id for a given cloid"""
         return self.cloid_to_order_id.get(cloid)
 
-    def match_orders_with_events(self, orders: List[OrderRequest], events: List[OrderCreatedEvent], receipt: web3.types.TxReceipt) -> List[OrderRequest]:
+    def match_orders_with_events(self, orders: List[OrderRequest], events: List[OrderCreatedEvent], receipt: TxReceipt) -> List[OrderRequest]:
         """
         Match orders with events based the price and isBuy field
         """
