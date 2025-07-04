@@ -192,7 +192,7 @@ class WebSocketHandler:
             market_address=payload['marketAddress'],
             maker_address=payload['makerAddress'],
             is_buy=payload['isBuy'],
-            price=float(payload['price']) / float(str(self.market_params.price_precision)),
+            price=str(float(payload['price']) / float(str(self.market_params.price_precision))),
             updated_size=str(float(payload['updatedSize']) / float(str(self.market_params.size_precision))),
             taker_address=payload['takerAddress'],
             filled_size=str(float(payload['filledSize']) / float(str(self.market_params.size_precision))),

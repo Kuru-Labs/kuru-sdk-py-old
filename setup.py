@@ -29,11 +29,11 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "web3>=7.6.0",
+        "web3[async]>=7.6.0",
         "eth-typing>=3.5.0",
         "eth-utils>=2.3.0",
         "python-dotenv>=1.0.0",
         "aiohttp>=3.9.1",
-        "python-socketio>=5.10.0"
+        "python-socketio[client]>=5.11.0"
     ],
 )
