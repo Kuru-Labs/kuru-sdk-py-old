@@ -49,17 +49,27 @@ class MarginAccount:
         token: str,
         amount: int,
     ) -> str:
-        """
-        Deposit tokens into the margin account
-        
-        Args:
-            user: Address of the user to credit
-            token: Token address (use NATIVE for ETH)
-            amount: Amount to deposit (in wei)
-            from_address: Address sending the transaction
-            
-        Returns:
-            transaction_hash: Hash of the submitted transaction
+        """Deposit an ERC-20 or native asset into the on-chain margin account.
+
+        Parameters
+        ----------
+        token : str
+            Checksummed ERC-20 token address or ``self.NATIVE`` for Monad's
+            native asset (MON).
+        amount : int
+            Raw quantity in the smallest unit (wei for MON, token decimals
+            otherwise).
+
+        Returns
+        -------
+        str
+            Transaction hash for the submitted deposit.
+
+        Raises
+        ------
+        Exception
+            If the private key is missing or the transaction fails during
+            signing / submission.
         """
         token = Web3.to_checksum_address(token)
         
@@ -127,16 +137,28 @@ class MarginAccount:
         token: str,
         amount: int,
     ) -> str:
-        """
-        Withdraw tokens from the margin account
-        
-        Args:
-            amount: Amount to withdraw (in wei)
-            token: Token address (use NATIVE for ETH)
-            from_address: Address sending the transaction
-            
-        Returns:
-            transaction_hash: Hash of the submitted transaction
+        """Withdraw ERC-20 or native asset from the margin account.
+
+        Uses the signing wallet (set via ``private_key``) to authorise the
+        on-chain withdrawal.
+
+        Parameters
+        ----------
+        token : str
+            Checksummed token address or ``self.NATIVE`` for MON.
+        amount : int
+            Raw smallest-unit amount to withdraw.
+
+        Returns
+        -------
+        str
+            Transaction hash of the withdrawal transaction.
+
+        Raises
+        ------
+        Exception
+            If the caller is not configured with a private key or the RPC
+            transaction fails.
         """
         token = Web3.to_checksum_address(token)
         

@@ -2,7 +2,7 @@ import socketio
 import asyncio
 import aiohttp
 import logging
-from typing import Optional, Callable, Union, Awaitable, Any, Coroutine
+from typing import Optional, Callable, Union, Awaitable, Any, Coroutine, Dict
 from kuru_sdk.types import OrderCreatedPayload, TradePayload, OrderCancelledPayload, MarketParams
 from kuru_sdk.client_order_executor import ClientOrderExecutor
 
@@ -153,7 +153,20 @@ class WebSocketHandler:
         """Check if the WebSocket is currently connected"""
         return self.sio.connected
     
-    def _format_order_created_payload(self, payload) -> OrderCreatedPayload:
+    def _format_order_created_payload(self, payload: Dict[str, Any]) -> OrderCreatedPayload:
+        """Convert raw websocket JSON into an `OrderCreatedPayload` dataclass.
+
+        Parameters
+        ----------
+        payload : Dict[str, Any]
+            Raw event dictionary received from the Kuru websocket.
+
+        Returns
+        -------
+        OrderCreatedPayload
+            Normalised payload with human‐readable price/size strings and the
+            resolved SDK client-order-id (CLOID) when available.
+        """
         return OrderCreatedPayload(
             order_id=payload['orderId'],
             cloid=self.client_order_executor.get_cloid_by_order_id(payload['orderId']) if self.client_order_executor else None,
@@ -171,7 +184,8 @@ class WebSocketHandler:
             is_canceled=payload['isCanceled'],
         )
     
-    def _format_trade_payload(self, payload) -> TradePayload:
+    def _format_trade_payload(self, payload: Dict[str, Any]) -> TradePayload:
+        """Convert raw websocket JSON into a `TradePayload` dataclass."""
         return TradePayload(
             order_id=payload['orderId'],
             cloid=self.client_order_executor.get_cloid_by_order_id(payload['orderId']) if self.client_order_executor else None,
@@ -189,7 +203,8 @@ class WebSocketHandler:
             trigger_time=payload['triggerTime'],
         )
     
-    def _format_order_cancelled_payload(self, payload) -> OrderCancelledPayload:
+    def _format_order_cancelled_payload(self, payload: Dict[str, Any]) -> OrderCancelledPayload:
+        """Convert raw websocket JSON into an `OrderCancelledPayload`."""
         cloids: list[str] = []
         if self.client_order_executor:
             cloids = [self.client_order_executor.get_cloid_by_order_id(order_id) for order_id in payload['orderIds'] if self.client_order_executor.get_cloid_by_order_id(order_id) is not None]
