@@ -42,93 +42,75 @@ WEBSOCKET_URL=wss://ws.testnet.kuru.io
 
 ### Basic Usage: Placing Orders
 
-Here's a simplified example of connecting to the WebSocket and placing a batch of orders using the `ClientOrderExecutor`:
+Below is a simplified **async** example that connects to the Kuru WebSocket and places a batch of orders via `ClientOrderExecutor`.
+
+> **Why AsyncWeb3?**  
+> All write-operations (order placement, deposits, withdrawals, approvals, etc.) must now be executed through `AsyncWeb3`.  Read-only calls may still use regular `Web3`.
 
 ```python
 import asyncio
 import os
-from web3 import Web3
 from dotenv import load_dotenv
-from kuru_sdk import ClientOrderExecutor
+from web3 import AsyncWeb3, AsyncHTTPProvider
+
+from kuru_sdk.client_order_executor import ClientOrderExecutor
 from kuru_sdk.types import OrderRequest
 
 load_dotenv()
 
-# Network and contract configuration (replace with actual addresses)
-NETWORK_RPC = os.getenv("RPC_URL")
+RPC_URL = os.getenv("RPC_URL")
 PRIVATE_KEY = os.getenv("PK")
 WEBSOCKET_URL = os.getenv("WEBSOCKET_URL", "wss://ws.testnet.kuru.io")
-ORDERBOOK_ADDRESS = '0x05e6f736b5dedd60693fa806ce353156a1b73cf3' # Example address
+ORDERBOOK_ADDRESS = "0x05e6f736b5dedd60693fa806ce353156a1b73cf3"
 
-async def run():
+
+async def main():
+    # 1. Create an AsyncWeb3 instance – this is mandatory for any state-changing tx.
+    web3 = AsyncWeb3(AsyncHTTPProvider(RPC_URL))
+
+    # 2. Initialise the ClientOrderExecutor with that AsyncWeb3 instance
     client = ClientOrderExecutor(
-        web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
+        web3=web3,
         contract_address=ORDERBOOK_ADDRESS,
         private_key=PRIVATE_KEY,
-        websocket_url=WEBSOCKET_URL
     )
 
+    # 3. Define limit orders to batch place
+    orders_to_place = [
+        OrderRequest(
+            market_address=ORDERBOOK_ADDRESS,
+            order_type="limit",
+            side="buy",
+            price="0.0000002",
+            size="10000",
+            cloid="my_buy_order_1",
+        ),
+        OrderRequest(
+            market_address=ORDERBOOK_ADDRESS,
+            order_type="limit",
+            side="sell",
+            price="0.0000005",
+            size="5000",
+            cloid="my_sell_order_1",
+        ),
+    ]
+
     try:
-        print("Connecting client...")
-        await client.connect()
-        print("Client connected.")
+        tx_hash = await client.batch_orders(orders_to_place)
+        print("Batch place order tx_hash:", tx_hash)
 
-        # Define orders
-        orders_to_place = [
-            OrderRequest(
-                market_address=ORDERBOOK_ADDRESS,
-                order_type='limit',
-                side='buy',
-                price=0.0000002,
-                size=10000,
-                cloid="my_buy_order_1" # Unique client order ID
-            ),
-            OrderRequest(
-                market_address=ORDERBOOK_ADDRESS,
-                order_type='limit',
-                side='sell',
-                price=0.0000005,
-                size=5000,
-                cloid="my_sell_order_1"
-            ),
-        ]
+        # wait a bit for on-chain inclusion (or subscribe via WebSocket)
+        await asyncio.sleep(5)
 
-        # Place batch orders
-        tx_hash_place = await client.batch_orders(orders_to_place)
-        print(f"Batch place order transaction hash: {tx_hash_place}")
-
-        await asyncio.sleep(5) # Allow time for processing
-
-        # Define cancellations
-        orders_to_cancel = [
-             OrderRequest(
-                market_address=ORDERBOOK_ADDRESS,
-                order_type='cancel',
-                cancel_cloids=["my_buy_order_1"] # Reference by client order ID
-            )
-        ]
-
-        # Cancel orders
-        tx_hash_cancel = await client.batch_orders(orders_to_cancel)
-        print(f"Batch cancel order transaction hash: {tx_hash_cancel}")
-
-        # Keep running or add other logic here
-        print("Orders managed. Add further logic or close.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
     finally:
-        print("Disconnecting client...")
-        await client.disconnect()
-        print("Client disconnected.")
+        # Always close underlying connections cleanly
+        await web3.provider.coro_disconnect()
+
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(run())
-    except KeyboardInterrupt:
-        print("\nExiting gracefully...")
+    asyncio.run(main())
 
-```
+**Gotchya:** If you accidentally pass a synchronous `Web3` instance to `ClientOrderExecutor` or `Orderbook` for a write-operation, an explicit `TypeError` will be raised reminding you to switch to `AsyncWeb3`.
 
 ## Key Features
 

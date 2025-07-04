@@ -122,7 +122,7 @@ class Token:
         spender = Web3.to_checksum_address(spender)
         return self.contract.functions.allowance(owner, spender).call()
 
-    async def approve(
+    def approve(
         self,
         spender: str,
         amount: int,
@@ -146,11 +146,11 @@ class Token:
         transaction = self.contract.functions.approve(spender, amount)
         
         try:
-            # Get gas estimate
-            gas_estimate = await maybe_await(transaction.estimate_gas({'from': from_address}))
+            # Get gas estimate (handle async providers transparently)
+            gas_estimate = asyncio.run(maybe_await(transaction.estimate_gas({'from': from_address}))) if asyncio.iscoroutinefunction(transaction.estimate_gas) else transaction.estimate_gas({'from': from_address})
             
             # Get nonce
-            nonce = await maybe_await(self.web3.eth.get_transaction_count(from_address))
+            nonce = asyncio.run(maybe_await(self.web3.eth.get_transaction_count(from_address))) if asyncio.iscoroutinefunction(self.web3.eth.get_transaction_count) else self.web3.eth.get_transaction_count(from_address)
             
             # Build transaction dict
             transaction_dict = {
@@ -168,7 +168,8 @@ class Token:
                     raw_transaction,
                     self.private_key
                 )
-                tx_hash = await maybe_await(self.web3.eth.send_raw_transaction(signed_txn.raw_transaction))
+                send_raw = self.web3.eth.send_raw_transaction(signed_txn.raw_transaction)
+                tx_hash = asyncio.run(maybe_await(send_raw)) if asyncio.iscoroutine(send_raw) or asyncio.iscoroutinefunction(self.web3.eth.send_raw_transaction) else send_raw
             else:
                 # Let wallet handle signing
                 tx_hash = transaction.transact(transaction_dict)

@@ -61,7 +61,9 @@ async def main():
         print(f"\nReceived exit signal {sig.name}...")
         print("Disconnecting client...")
         try:
-            print('idk')
+            # Placeholder for any cleanup tasks you may want to run before shutdown
+            # (e.g. flushing logs, persisting state, etc.)
+            pass
         except Exception as e:
             print(f"Error during disconnect: {e}")
         finally:

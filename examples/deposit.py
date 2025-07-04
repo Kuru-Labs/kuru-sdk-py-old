@@ -24,7 +24,11 @@ ADDRESSES = {
 WS_URL = "https://ws.testnet.kuru.io"
 
 async def main():
+    if not NETWORK_RPC or not os.getenv('PK'):
+        raise EnvironmentError("RPC_URL and PK must be set in your .env file")
+
     web3 = AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC))
+
     margin_account = MarginAccount(
         web3=web3,
         contract_address=ADDRESSES['margin_account'],
@@ -33,18 +37,21 @@ async def main():
 
     wallet_address = web3.eth.account.from_key(os.getenv('PK')).address
 
+    try:
+        print("Submitting deposit transaction...")
+        tx_hash = await margin_account.deposit(
+            token=ADDRESSES['chog'],
+            amount=100000000000000000000000  # 100k CHOG as raw units
+        )
+        print(f"Deposit tx_hash: {tx_hash}")
 
-    await margin_account.deposit(
-        token=ADDRESSES['chog'],
-        amount=100000000000000000000000
-    )
-
-    balance = await margin_account.get_balance(
-        user_address=wallet_address,
-        token=ADDRESSES['mon']
-    )
-    print(f"Balance: {balance}")
-    
+        balance = await margin_account.get_balance(
+            user_address=wallet_address,
+            token=ADDRESSES['mon']
+        )
+        print(f"Margin account MON balance: {balance}")
+    except Exception as exc:
+        print(f"Deposit failed: {exc}")
 
 if __name__ == "__main__":
     asyncio.run(main())

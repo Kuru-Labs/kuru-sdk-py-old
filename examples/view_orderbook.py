@@ -11,7 +11,6 @@ from kuru_sdk.client_order_executor import ClientOrderExecutor
 
 
 from web3 import Web3
-from kuru_sdk.margin import MarginAccount
 import os
 
 from dotenv import load_dotenv
