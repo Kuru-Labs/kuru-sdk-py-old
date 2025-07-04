@@ -1,4 +1,6 @@
+from __future__ import annotations
 from web3 import Web3
+from web3.types import TxReceipt
 import web3.types
 from kuru_sdk.orderbook import Orderbook, TxOptions
 from typing import Dict, List, Optional, Callable, Awaitable, Any, Union
