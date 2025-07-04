@@ -9,16 +9,40 @@ import logging
 from collections import deque
 
 class ClientOrderExecutor:
-    def __init__(self,
+    def __init__(
                  web3: Web3,
                  contract_address: str,
                  private_key: Optional[str] = None,
-                 kuru_api_url: Optional[str] = None,
-                 logger: Union[logging.Logger, bool] = True,
+                 kuru_api_url: Optional[str | None] = None,
+                 logger: Union[logging.Logger, bool, None] = True,
              ):
+        """Client-side helper for submitting and tracking on-chain orders.
+
+        Parameters
+        ----------
+        web3 : Web3
+            A *synchronous* or **AsyncWeb3** instance.  Async is mandatory for
+            state-changing transactions; sync is permissible for read-only
+            operations.
+        contract_address : str
+            Checksummed order-book contract address.
+        private_key : str | None, optional
+            Hex-encoded private key used to sign transactions.  If ``None`` the
+            SDK will attempt to send unsigned transactions (requires external
+            signer such as MetaMask / Monad RPC).  Defaults to ``None``.
+        kuru_api_url : str | None, optional
+            Base URL for the REST API.  When ``None`` the default gateway
+            defined in :class:`~kuru_sdk.api.KuruAPI` is used.
+        logger : bool | logging.Logger | None, default ``True``
+            • ``True``  → create a default logger under this module's name.  
+            • ``False`` → disable logging completely.                        
+            • ``logging.Logger`` instance → use that for all log output.
+        """
         
         self.web3 = web3
-        self.orderbook = Orderbook(web3, contract_address, private_key, logger=logger)
+        # Forward a real Logger instance to Orderbook; otherwise disable per-instance logging
+        orderbook_logger = logger if isinstance(logger, logging.Logger) else None
+        self.orderbook = Orderbook(web3, contract_address, private_key, logger=orderbook_logger)
         self.kuru_api = KuruAPI(kuru_api_url)
         self.wallet_address = self.web3.eth.account.from_key(private_key).address
         
