@@ -51,7 +51,27 @@ async def maybe_await(value):
         return await value
     return value
 
+# --- Helper for synchronous code paths ------------------------------------
+
+def await_sync(value):
+    """Synchronously wait for *value* if it is an awaitable.
+
+    This utility is safe to call inside event loops (it uses `asyncio.ensure_future`)
+    and outside of them (falls back to `asyncio.run`).
+    """
+    if not asyncio.iscoroutine(value):
+        return value
+
+    try:
+        loop = asyncio.get_running_loop()
+        # If we're already inside an event loop, schedule the coroutine and wait.
+        return loop.run_until_complete(value)  # type: ignore
+    except RuntimeError:
+        # No running loop — create a temporary one.
+        return asyncio.run(value)
+
 __all__ = [
     'get_error_message',
     'maybe_await',
+    'await_sync',
 ]
