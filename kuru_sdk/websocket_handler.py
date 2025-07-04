@@ -101,8 +101,21 @@ class WebSocketHandler:
         if self.logger:
             self.logger.error(message)
 
-    async def connect(self):
-        """Connect to the WebSocket server"""
+    async def connect(self) -> None:
+        """Establish an async Socket.IO connection.
+
+        This method initialises an internal `aiohttp.ClientSession` (if not already
+        present) and connects the underlying `socketio.AsyncClient` to
+        `self.websocket_url` with the required market‐address query parameter.
+
+        On success a background task (`self.sio.wait()`) is spawned so the
+        connection can live independently of the caller's event-loop context.
+
+        Raises
+        ------
+        Exception
+            Re‐raises any underlying connection error after it has been logged.
+        """
         try:
             if not self._session:
                 self._session = aiohttp.ClientSession()
@@ -120,8 +133,12 @@ class WebSocketHandler:
             self._log_error(f"Failed to connect to WebSocket server: {e}")
             raise
 
-    async def disconnect(self):
-        """Disconnect from the WebSocket server"""
+    async def disconnect(self) -> None:
+        """Gracefully close the Socket.IO connection.
+
+        Closes the internal `socketio.AsyncClient` and the `aiohttp.ClientSession`
+        that were started in :meth:`connect`.  Safe to call multiple times.
+        """
         try:
             await self.sio.disconnect()
             if self._session:
@@ -142,15 +159,15 @@ class WebSocketHandler:
             cloid=self.client_order_executor.get_cloid_by_order_id(payload['orderId']) if self.client_order_executor else None,
             market_address=payload['marketAddress'],
             owner=payload['owner'],
-            price=float(payload['price']) / float(str(self.market_params.price_precision)),
-            size=float(payload['size']) / float(str(self.market_params.size_precision)),
+            price=str(float(payload['price']) / float(str(self.market_params.price_precision))),
+            size=str(float(payload['size']) / float(str(self.market_params.size_precision))),
             is_buy=payload['isBuy'],
             block_number=payload['blockNumber'],
             tx_index=payload['txIndex'],
             log_index=payload['logIndex'],
             transaction_hash=payload['transactionHash'],
             trigger_time=payload['triggerTime'],
-            remaining_size=float(payload['remainingSize']) / float(str(self.market_params.size_precision)),
+            remaining_size=str(float(payload['remainingSize']) / float(str(self.market_params.size_precision))),
             is_canceled=payload['isCanceled'],
         )
     

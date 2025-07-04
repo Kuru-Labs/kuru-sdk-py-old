@@ -1,12 +1,12 @@
 web3[async]==7.6.0
+python-socketio[client]==5.11.1
+aiohttp==3.9.3
+python-dotenv==1.0.0
 eth-typing>=3.5.0
 eth-utils>=2.3.0
-python-dotenv==1.0.0
+
+# Development / testing dependencies
 pytest==7.4.3
 pytest-asyncio==0.21.1
-
-
-python-socketio[client]==5.11.1
 websockets==12.0
-aiohttp==3.9.3 
 asyncio==3.4.3
