@@ -2,7 +2,7 @@ import socketio
 import asyncio
 import aiohttp
 import logging
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, Awaitable, Any, Coroutine
 from kuru_sdk.types import OrderCreatedPayload, TradePayload, OrderCancelledPayload, MarketParams
 from kuru_sdk.client_order_executor import ClientOrderExecutor
 
@@ -11,9 +11,9 @@ class WebSocketHandler:
                  websocket_url: str,
                  market_address: str,
                  market_params: MarketParams,
-                 on_order_created: Optional[Callable[[OrderCreatedPayload], None]] = None,
-                 on_trade: Optional[Callable[[TradePayload], None]] = None,
-                 on_order_cancelled: Optional[Callable[[OrderCancelledPayload], None]] = None,
+                 on_order_created: Optional[Callable[[OrderCreatedPayload], Union[None, Awaitable[Any]]]] = None,
+                 on_trade: Optional[Callable[[TradePayload], Union[None, Awaitable[Any]]]] = None,
+                 on_order_cancelled: Optional[Callable[[OrderCancelledPayload], Union[None, Awaitable[Any]]]] = None,
                  reconnect_interval: int = 5,
                  max_reconnect_attempts: int = 5,
                  client_order_executor: Optional[ClientOrderExecutor] = None,
@@ -61,7 +61,9 @@ class WebSocketHandler:
             self._log_info(f"OrderCreated Event Received: {formatted_payload}")
             try:
                 if self._on_order_created:
-                    await self._on_order_created(formatted_payload)
+                    result = self._on_order_created(formatted_payload)
+                    if asyncio.iscoroutine(result):
+                        await result
             except Exception as e:
                 self._log_error(f"Error in on_order_created callback: {e}")
         
@@ -71,7 +73,9 @@ class WebSocketHandler:
             self._log_info(f"Trade Event Received: {formatted_payload}")
             try:
                 if self._on_trade:
-                    await self._on_trade(formatted_payload)
+                    result = self._on_trade(formatted_payload)
+                    if asyncio.iscoroutine(result):
+                        await result
             except Exception as e:
                 self._log_error(f"Error in on_trade callback: {e}")
         
@@ -81,7 +85,9 @@ class WebSocketHandler:
             self._log_info(f"OrdersCanceled Event Received: {formatted_payload}")
             try:
                 if self._on_order_cancelled:
-                    await self._on_order_cancelled(formatted_payload)
+                    result = self._on_order_cancelled(formatted_payload)
+                    if asyncio.iscoroutine(result):
+                        await result
             except Exception as e:
                 self._log_error(f"Error in on_order_cancelled callback: {e}")
 
@@ -156,9 +162,9 @@ class WebSocketHandler:
             maker_address=payload['makerAddress'],
             is_buy=payload['isBuy'],
             price=float(payload['price']) / float(str(self.market_params.price_precision)),
-            updated_size=float(payload['updatedSize']) / float(str(self.market_params.size_precision)),
+            updated_size=str(float(payload['updatedSize']) / float(str(self.market_params.size_precision))),
             taker_address=payload['takerAddress'],
-            filled_size=float(payload['filledSize']) / float(str(self.market_params.size_precision)),
+            filled_size=str(float(payload['filledSize']) / float(str(self.market_params.size_precision))),
             block_number=payload['blockNumber'],
             tx_index=payload['txIndex'],
             log_index=payload['logIndex'],
@@ -167,9 +173,9 @@ class WebSocketHandler:
         )
     
     def _format_order_cancelled_payload(self, payload) -> OrderCancelledPayload:
-        cloids = None
+        cloids: list[str] = []
         if self.client_order_executor:
-            cloids = [self.client_order_executor.get_cloid_by_order_id(order_id) for order_id in payload['orderIds']]
+            cloids = [self.client_order_executor.get_cloid_by_order_id(order_id) for order_id in payload['orderIds'] if self.client_order_executor.get_cloid_by_order_id(order_id) is not None]
             
         return OrderCancelledPayload(
             order_ids=payload['orderIds'],
