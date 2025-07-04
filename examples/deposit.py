@@ -6,7 +6,7 @@ from pathlib import Path
 project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
-from web3 import Web3
+from web3 import AsyncWeb3, AsyncHTTPProvider
 from kuru_sdk.margin import MarginAccount
 import os
 
@@ -24,7 +24,7 @@ ADDRESSES = {
 WS_URL = "https://ws.testnet.kuru.io"
 
 async def main():
-    web3 = Web3(Web3.HTTPProvider(NETWORK_RPC))
+    web3 = AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC))
     margin_account = MarginAccount(
         web3=web3,
         contract_address=ADDRESSES['margin_account'],

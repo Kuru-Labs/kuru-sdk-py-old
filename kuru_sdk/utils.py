@@ -1,5 +1,5 @@
-
 import re
+import asyncio
 
 error_codes = {
     "bb55fd27": "Insufficient Liquidity",
@@ -44,3 +44,14 @@ def get_error_message(error: str | tuple) -> str:
     error = error.replace('0x', '')
     
     return error_codes.get(error, f"Unknown error: {error}")
+
+async def maybe_await(value):
+    """Return awaited result if *value* is awaitable, otherwise return it untouched."""
+    if asyncio.iscoroutine(value):
+        return await value
+    return value
+
+__all__ = [
+    'get_error_message',
+    'maybe_await',
+]

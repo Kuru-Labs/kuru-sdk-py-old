@@ -6,7 +6,7 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
 from kuru_sdk.client_order_executor import ClientOrderExecutor
-from web3 import Web3
+from web3 import AsyncWeb3, AsyncHTTPProvider
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -20,7 +20,7 @@ ORDERBOOK_ADDRESS = '0xd3af145f1aa1a471b5f0f62c52cf8fcdc9ab55d3'
 async def main():
     # Initialize the client
     client = ClientOrderExecutor(
-        web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
+        web3=AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC)),
         contract_address=ORDERBOOK_ADDRESS,
         private_key=os.getenv("PK"),
         kuru_api_url=os.getenv("KURU_API_URL"),

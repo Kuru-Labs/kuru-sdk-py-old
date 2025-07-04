@@ -2,7 +2,9 @@ from web3 import Web3
 from typing import Optional
 import json
 import os
+import asyncio
 
+from kuru_sdk.utils import maybe_await
 
 # Load ERC20 ABI
 with open(os.path.join(os.path.dirname(__file__), 'abi/ierc20.json'), 'r') as f:
@@ -70,17 +72,17 @@ class MarginAccount:
             )
             
             # Check allowance
-            allowance = token_contract.functions.allowance(self.wallet_address, self.contract_address).call()
+            allowance = await maybe_await(token_contract.functions.allowance(self.wallet_address, self.contract_address).call())
             if allowance < amount:
                 print(f"Insufficient allowance. Current: {allowance}, Required: {amount}")
                 print("Approving tokens for deposit...")
                 allowance_tx = token_contract.functions.approve(self.contract_address, amount).build_transaction({
                     'from': self.wallet_address,
-                    'nonce': self.web3.eth.get_transaction_count(self.wallet_address),
+                    'nonce': await maybe_await(self.web3.eth.get_transaction_count(self.wallet_address)),
                 })
                 signed_tx = self.web3.eth.account.sign_transaction(allowance_tx, self.private_key)
-                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+                tx_hash = await maybe_await(self.web3.eth.send_raw_transaction(signed_tx.raw_transaction))
+                receipt = await maybe_await(self.web3.eth.wait_for_transaction_receipt(tx_hash))
                 print(f"Approval transaction hash: {receipt.transactionHash.hex()}")
         
         # Build transaction
@@ -94,8 +96,8 @@ class MarginAccount:
         value = amount if token == self.NATIVE else 0
         
         # Get gas estimate and nonce
-        gas_estimate = transaction.estimate_gas({'from': self.wallet_address, 'value': value})
-        nonce = self.web3.eth.get_transaction_count(self.wallet_address)
+        gas_estimate = await maybe_await(transaction.estimate_gas({'from': self.wallet_address, 'value': value}))
+        nonce = await maybe_await(self.web3.eth.get_transaction_count(self.wallet_address))
         
         # Build transaction dict
         transaction_dict = {
@@ -113,12 +115,12 @@ class MarginAccount:
                 raw_transaction,
                 self.private_key
             )
-            tx_hash = self.web3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"Deposit transaction submitted: {tx_hash.hex()}")
+            tx_hash = await maybe_await(self.web3.eth.send_raw_transaction(signed_txn.raw_transaction))
+            print(f"Deposit transaction submitted: {Web3.to_hex(tx_hash)}")
         else:
             raise Exception("Private key is required to deposit tokens into the margin account")
             
-        return tx_hash.hex()
+        return Web3.to_hex(tx_hash)
 
     async def withdraw(
         self,
@@ -145,8 +147,8 @@ class MarginAccount:
         )
         
         # Get gas estimate and nonce
-        gas_estimate = transaction.estimate_gas({'from': self.wallet_address})
-        nonce = self.web3.eth.get_transaction_count(self.wallet_address)
+        gas_estimate = await maybe_await(transaction.estimate_gas({'from': self.wallet_address}))
+        nonce = await maybe_await(self.web3.eth.get_transaction_count(self.wallet_address))
         
         # Build transaction dict
         transaction_dict = {
@@ -163,11 +165,11 @@ class MarginAccount:
                 raw_transaction,
                 self.private_key
             )
-            tx_hash = self.web3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            tx_hash = await maybe_await(self.web3.eth.send_raw_transaction(signed_txn.raw_transaction))
         else:
             raise Exception("Private key is required to withdraw tokens from the margin account")
             
-        return tx_hash.hex()
+        return Web3.to_hex(tx_hash)
     
     async def get_balance(
         self,

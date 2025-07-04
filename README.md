@@ -2,6 +2,7 @@
 
 A Python SDK for interacting with the Kuru protocol, enabling market makers to manage orders, interact with margin accounts, and query exchange data.
 
+⚠️ **Important:** As of v0.2.0, the SDK now uses `AsyncWeb3` for all state-changing (non-view) contract interactions such as order placement and margin deposit/withdraw transactions. Regular synchronous `Web3` **can still be used for pure read calls** (e.g. checking on-chain balances) but any examples that send transactions must construct an `AsyncWeb3` instance.
 
 ## Create a venv
 

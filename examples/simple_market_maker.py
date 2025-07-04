@@ -11,7 +11,7 @@ from kuru_sdk.websocket_handler import WebSocketHandler
 from kuru_sdk.types import OrderCancelledPayload, OrderCreatedPayload, OrderRequest, TradePayload
 from kuru_sdk.client_order_executor import ClientOrderExecutor
 
-from web3 import Web3
+from web3 import AsyncWeb3, AsyncHTTPProvider
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -128,7 +128,7 @@ class MarketMakerBot:
         self.shutdown_event = asyncio.Future()
 
         self.client = ClientOrderExecutor(
-            web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
+            web3=AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC)),
             contract_address=ADDRESSES['orderbook'],
             private_key=PK,
         )

@@ -3,6 +3,9 @@ from typing import Optional
 from decimal import Decimal
 import json
 from pathlib import Path
+import asyncio
+
+from kuru_sdk.utils import maybe_await
 
 class TokenError:
     class ApprovalError(Exception):
@@ -119,7 +122,7 @@ class Token:
         spender = Web3.to_checksum_address(spender)
         return self.contract.functions.allowance(owner, spender).call()
 
-    def approve(
+    async def approve(
         self,
         spender: str,
         amount: int,
@@ -144,10 +147,10 @@ class Token:
         
         try:
             # Get gas estimate
-            gas_estimate = transaction.estimate_gas({'from': from_address})
+            gas_estimate = await maybe_await(transaction.estimate_gas({'from': from_address}))
             
             # Get nonce
-            nonce = self.web3.eth.get_transaction_count(from_address)
+            nonce = await maybe_await(self.web3.eth.get_transaction_count(from_address))
             
             # Build transaction dict
             transaction_dict = {
@@ -165,12 +168,12 @@ class Token:
                     raw_transaction,
                     self.private_key
                 )
-                tx_hash = self.web3.eth.send_raw_transaction(signed_txn.raw_transaction)
+                tx_hash = await maybe_await(self.web3.eth.send_raw_transaction(signed_txn.raw_transaction))
             else:
                 # Let wallet handle signing
                 tx_hash = transaction.transact(transaction_dict)
                 
-            return tx_hash.hex()
+            return Web3.to_hex(tx_hash)
             
         except Exception as e:
             raise TokenError.ApprovalError(f"Failed to approve tokens: {str(e)}")

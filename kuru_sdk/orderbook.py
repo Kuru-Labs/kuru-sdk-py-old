@@ -6,7 +6,7 @@ import os
 import logging
 import asyncio
 
-from kuru_sdk.utils import get_error_message
+from kuru_sdk.utils import get_error_message, maybe_await
 
 from .types import MarketParams, OrderCreatedEvent, TxOptions, L2Book, FormattedL2Book, OrderPriceSize, VaultParams
 
@@ -107,13 +107,14 @@ class Orderbook:
         """Helper method to prepare transaction parameters"""
         func = getattr(self.contract.functions, function_name)(*args)
         print(f"func: {func}")
+        chain_id = await maybe_await(self.web3.eth.chain_id)
         tx = {
             'to': self.contract_address,
             'value': value,
             'data': func._encode_transaction_data(),
             'from': self.web3.eth.account.from_key(self.private_key).address,
             'type': '0x2',  # EIP-1559 transaction type
-            'chainId': self.web3.eth.chain_id
+            'chainId': chain_id
         }
 
         # Set maxPriorityFeePerGas (tip) and maxFeePerGas
@@ -123,8 +124,10 @@ class Orderbook:
         else:
             # Default to 2x current base fee for maxFeePerGas
             # Get base fee from latest block
-            base_fee = self.web3.eth.get_block('latest')['baseFeePerGas']
-            tx['maxPriorityFeePerGas'] = tx_options.max_priority_fee_per_gas or self.web3.eth.max_priority_fee
+            latest_block = await maybe_await(self.web3.eth.get_block('latest'))
+            base_fee = latest_block['baseFeePerGas']
+            priority_fee = tx_options.max_priority_fee_per_gas or await maybe_await(self.web3.eth.max_priority_fee)
+            tx['maxPriorityFeePerGas'] = priority_fee
             tx['maxFeePerGas'] = base_fee + tx['maxPriorityFeePerGas']
             # Default priority fee (can be adjusted based on network conditions)
 
@@ -133,7 +136,7 @@ class Orderbook:
             tx['maxPriorityFeePerGas'] = tx['maxFeePerGas']
         
         if tx_options.gas_limit is None:
-            estimated_gas = self.web3.eth.estimate_gas(tx)
+            estimated_gas = await maybe_await(self.web3.eth.estimate_gas(tx))
             tx['gas'] = estimated_gas
         else:
             tx['gas'] = tx_options.gas_limit
@@ -141,7 +144,7 @@ class Orderbook:
         if tx_options.nonce is not None:
             tx['nonce'] = tx_options.nonce
         else:
-            tx['nonce'] = self.web3.eth.get_transaction_count(tx['from'])
+            tx['nonce'] = await maybe_await(self.web3.eth.get_transaction_count(tx['from']))
         return tx
 
     async def _execute_transaction(self, tx: Dict, async_execution: bool = False) -> str:
@@ -162,23 +165,20 @@ class Orderbook:
                 tx_hash_from_signed = signed_tx.hash.hex()
                 self._log_info(f"tx_hash_from_signed: {tx_hash_from_signed}")
                 
+                async def _send():
+                    return await maybe_await(self.web3.eth.send_raw_transaction(signed_tx.raw_transaction))
+
                 if async_execution:
-                    async def send_tx_background():
-                        try:
-                            self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                        except Exception as e:
-                            self._log_error(f"Background transaction submission error: {e}")
-                    
-                    # Create a task that runs in the background
-                    asyncio.create_task(send_tx_background())
+                    # Fire-and-forget background task
+                    asyncio.create_task(_send())
                 else:
-                    # Send synchronously
-                    self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                
+                    # Await submission before returning
+                    await _send()
+
                 return tx_hash_from_signed
             else:
-                # For non-private key transactions
-                tx_hash = self.web3.eth.send_transaction(tx)
+                # For non-private key transactions (where external signer is used)
+                tx_hash = await maybe_await(self.web3.eth.send_transaction(tx))
                 return tx_hash.hex()
         except Exception as e:
             raise RuntimeError("Error executing transaction: " + str(e))

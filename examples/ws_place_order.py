@@ -12,7 +12,7 @@ from kuru_sdk.types import OrderCancelledPayload, OrderCreatedPayload, OrderRequ
 
 from kuru_sdk.client_order_executor import ClientOrderExecutor
 
-from web3 import Web3
+from web3 import AsyncWeb3, AsyncHTTPProvider
 from kuru_sdk import Orderbook, TxOptions
 import os
 import json
@@ -93,7 +93,7 @@ class OrderExecutor:
         self.shutdown_event = asyncio.Future()
         
         self.client = ClientOrderExecutor(
-            web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
+            web3=AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC)),
             contract_address=ADDRESSES['orderbook'],
             private_key=os.getenv("PK"),
         )

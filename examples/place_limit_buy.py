@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 import asyncio
 from dotenv import load_dotenv
-from web3 import Web3
+from web3 import AsyncWeb3, AsyncHTTPProvider
 
 # Add project root to Python path
 project_root = str(Path(__file__).parent.parent)
@@ -58,7 +58,7 @@ async def main():
         print("Error: Please set RPC_URL, PK, and ORDERBOOK_ADDRESS environment variables or update the script.")
         return
 
-    web3_instance = Web3(Web3.HTTPProvider(NETWORK_RPC))
+    web3_instance = AsyncWeb3(AsyncHTTPProvider(NETWORK_RPC))
     client = ClientOrderExecutor(
         web3=web3_instance,
         contract_address=ORDERBOOK_ADDRESS,
