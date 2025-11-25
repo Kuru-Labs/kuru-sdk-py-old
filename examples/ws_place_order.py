@@ -5,7 +5,6 @@ from pathlib import Path
 project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
-from kuru_sdk.websocket_handler import WebSocketHandler
 
 
 from kuru_sdk.types import OrderCancelledPayload, OrderCreatedPayload, OrderRequest, TradePayload
@@ -102,23 +101,11 @@ class OrderExecutor:
             config=self.network_config,
         )
 
-        ws_url = self.network_config.websocket_url or "wss://ws.testnet.kuru.io"
-
-        self.ws_client = WebSocketHandler(
-            websocket_url=ws_url,
-            market_address=ADDRESSES['orderbook'],
-            market_params=self.client.orderbook.market_params,
-            on_order_created=self.on_order_created,
-            on_trade=self.on_trade,
-            on_order_cancelled=self.on_order_cancelled
-        )
-
-        await self.ws_client.connect()
-        
-        # Add signal handlers
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(self.shutdown(s)))
+        # NOTE: WebSocketHandler has been removed from the SDK.
+        # This example currently demonstrates only order placement via
+        # on-chain transactions using ClientOrderExecutor.
+        # If you need real-time streaming, you will need to implement
+        # your own WebSocket client against the Kuru WebSocket API.
 
     async def shutdown(self, sig):
         print(f"\nReceived exit signal {sig.name}...")

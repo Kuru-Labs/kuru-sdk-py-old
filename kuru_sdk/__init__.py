@@ -7,6 +7,7 @@ from .config import (
     MONAD_MAINNET_CHAIN_ID,
     MONAD_MAINNET,
     create_client_order_executor,
+    create_margin_account,
 )
 
 
@@ -23,4 +24,5 @@ __all__ = [
     'MONAD_MAINNET_CHAIN_ID',
     'MONAD_MAINNET',
     'create_client_order_executor',
+    'create_margin_account',
 ]

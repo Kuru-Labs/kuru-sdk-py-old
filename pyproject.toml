@@ -1,3 +1,47 @@
 [build-system]
 requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "kuru-sdk"
+version = "0.2.8"
+description = "Python SDK for Kuru's Central Limit Orderbook (CLOB)"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+authors = [
+  { name = "Kuru Labs", email = "tech@kurulabs.xyz" },
+]
+dependencies = [
+  "web3>=7.6.0",
+  "eth-typing>=3.5.0",
+  "eth-utils>=2.3.0",
+  "python-dotenv>=1.0.0",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==7.4.3",
+  "pytest-asyncio==0.21.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/kuru/kuru-py-sdk"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kuru_sdk*"]
+
+[tool.setuptools.package-data]
+"kuru_sdk" = ["abi/*.json"]

@@ -20,7 +20,7 @@ pip install kuru-sdk
 
 ## Getting Started
 
-This SDK provides tools to interact with the Kuru order book and margin accounts primarily through Web3 and WebSocket connections for real-time order execution. It also offers a basic REST API client for querying data.
+This SDK provides tools to interact with the Kuru order book and margin accounts primarily through Web3 for real-time order execution. It also offers a basic REST API client for querying data.
 
 ### Prerequisites
 
@@ -35,13 +35,14 @@ The SDK often requires environment variables for configuration. Create a `.env` 
 ```dotenv
 RPC_URL=YOUR_ETHEREUM_RPC_URL
 PK=YOUR_WALLET_PRIVATE_KEY
-# Optional: WebSocket URL if different from default
-WEBSOCKET_URL=wss://ws.testnet.kuru.io
+// Optional: WebSocket URL if you implement your own
+// streaming client against the Kuru WebSocket API.
+// WEBSOCKET_URL=wss://ws.testnet.kuru.io
 ```
 
 ### Basic Usage: Placing Orders
 
-Here's a simplified example of connecting to the WebSocket and placing a batch of orders using the `ClientOrderExecutor`:
+Here's a simplified example of placing a batch of orders using the `ClientOrderExecutor`:
 
 ```python
 import asyncio
@@ -56,7 +57,6 @@ load_dotenv()
 # Network and contract configuration (replace with actual addresses)
 NETWORK_RPC = os.getenv("RPC_URL")
 PRIVATE_KEY = os.getenv("PK")
-WEBSOCKET_URL = os.getenv("WEBSOCKET_URL", "wss://ws.testnet.kuru.io")
 ORDERBOOK_ADDRESS = '0x05e6f736b5dedd60693fa806ce353156a1b73cf3' # Example address
 
 async def run():
@@ -64,7 +64,6 @@ async def run():
         web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
         contract_address=ORDERBOOK_ADDRESS,
         private_key=PRIVATE_KEY,
-        websocket_url=WEBSOCKET_URL
     )
 
     try:
@@ -117,9 +116,7 @@ async def run():
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        print("Disconnecting client...")
-        await client.disconnect()
-        print("Client disconnected.")
+        print("Finished example run.")
 
 if __name__ == "__main__":
     try:
@@ -136,7 +133,7 @@ if __name__ == "__main__":
 *   **`MarginAccount`**: Interacts with the MarginAccount contract via Web3 calls.
 *   **`KuruAPI`**: A simple client for querying REST API endpoints (e.g., fetching user orders, trades).
 *   **`types`**: Defines data structures like `OrderRequest` for standardized interactions.
-*   **`websocket_handler`**: Core WebSocket communication logic used by `ClientOrderExecutor`.
+*   **`websocket_handler`**: (Deprecated and removed) Previously provided WebSocket streaming helpers; users should now implement their own streaming client if needed.
 
 ## Examples
 

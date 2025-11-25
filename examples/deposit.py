@@ -7,41 +7,43 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
 from web3 import Web3
-from kuru_sdk.margin import MarginAccount
+from kuru_sdk import MONAD_MAINNET, NetworkConfig
+from kuru_sdk.config import create_margin_account
 import os
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Network and contract configuration
-NETWORK_RPC = os.getenv("RPC_URL")
-ADDRESSES = {
-    'margin_account': '0x4B186949F31FCA0aD08497Df9169a6bEbF0e26ef',
-    'chog': '0x7E9953A11E606187be268C3A6Ba5f36635149C81',
-    'mon': '0x0000000000000000000000000000000000000000'
-}
-WS_URL = "https://ws.testnet.kuru.io"
+# Network configuration (use env RPC_URL if provided, otherwise default)
+NETWORK_CONFIG = NetworkConfig(
+    rpc_url=os.getenv("RPC_URL", MONAD_MAINNET.rpc_url),
+    websocket_url=None,
+    chain_id=MONAD_MAINNET.chain_id,
+    margin_contract_address=MONAD_MAINNET.margin_contract_address,
+    common_tokens=MONAD_MAINNET.common_tokens,
+)
 
 async def main():
-    web3 = Web3(Web3.HTTPProvider(NETWORK_RPC))
-    margin_account = MarginAccount(
-        web3=web3,
-        contract_address=ADDRESSES['margin_account'],
-        private_key=os.getenv('PK')
+    web3 = Web3(Web3.HTTPProvider(NETWORK_CONFIG.rpc_url))
+    margin_account = create_margin_account(
+        private_key=os.getenv('PK'),
+        config=NETWORK_CONFIG,
     )
 
-    wallet_address = web3.eth.account.from_key(os.getenv('PK')).address
+    wallet_address = margin_account.wallet_address
 
+    # Example: deposit MON using configured token address
+    mon_address = NETWORK_CONFIG.common_tokens["MON"]["address"]
 
     await margin_account.deposit(
-        token=ADDRESSES['chog'],
+        token=mon_address,
         amount=100000000000000000000000
     )
 
     balance = await margin_account.get_balance(
         user_address=wallet_address,
-        token=ADDRESSES['mon']
+        token=mon_address,
     )
     print(f"Balance: {balance}")
     
