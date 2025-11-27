@@ -61,9 +61,11 @@ class ClientOrderExecutor:
             if self.tx_queue:
                 tx_hash, orders = self.tx_queue.popleft()
                 try:
+                    # Poll for transaction receipt once per second
                     receipt = await asyncio.to_thread(
-                        self.web3.eth.wait_for_transaction_receipt, 
-                        tx_hash
+                        self.web3.eth.wait_for_transaction_receipt,
+                        tx_hash,
+                        poll_latency=1.0,
                     )
                     
                     if receipt.status == 1:

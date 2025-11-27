@@ -5,15 +5,15 @@ from pathlib import Path
 project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
-from kuru_sdk.websocket_handler import WebSocketHandler
 
 
 from kuru_sdk.types import OrderCancelledPayload, OrderCreatedPayload, OrderRequest, TradePayload
 
-from kuru_sdk.client_order_executor import ClientOrderExecutor
-
-from web3 import Web3
-from kuru_sdk import Orderbook, TxOptions
+from kuru_sdk import (
+    MONAD_MAINNET,
+    NetworkConfig,
+    create_client_order_executor,
+)
 import os
 import json
 import argparse
@@ -24,7 +24,7 @@ import signal
 load_dotenv()
 
 # Network and contract configuration
-NETWORK_RPC = os.getenv("RPC_URL") 
+NETWORK_RPC = os.getenv("RPC_URL", MONAD_MAINNET.rpc_url)
 
 print(f"NETWORK_RPC: {NETWORK_RPC}")
 
@@ -38,9 +38,12 @@ ADDRESSES = {
 
     
 class OrderExecutor:
-    def __init__(self):
+    def __init__(self, network_config: NetworkConfig):
         self.client = None
         self.shutdown_event = None
+
+        # Network configuration must be provided explicitly
+        self.network_config = network_config
 
         self.cloid_to_order = {}
         self.order_id_to_cloid = {}  
@@ -92,29 +95,17 @@ class OrderExecutor:
     async def initialize(self):
         self.shutdown_event = asyncio.Future()
         
-        self.client = ClientOrderExecutor(
-            web3=Web3(Web3.HTTPProvider(NETWORK_RPC)),
-            contract_address=ADDRESSES['orderbook'],
+        self.client = create_client_order_executor(
+            orderbook_address=ADDRESSES['orderbook'],
             private_key=os.getenv("PK"),
+            config=self.network_config,
         )
 
-        ws_url = f"wss://ws.testnet.kuru.io"
-
-        self.ws_client = WebSocketHandler(
-            websocket_url=ws_url,
-            market_address=ADDRESSES['orderbook'],
-            market_params=self.client.orderbook.market_params,
-            on_order_created=self.on_order_created,
-            on_trade=self.on_trade,
-            on_order_cancelled=self.on_order_cancelled
-        )
-
-        await self.ws_client.connect()
-        
-        # Add signal handlers
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(self.shutdown(s)))
+        # NOTE: WebSocketHandler has been removed from the SDK.
+        # This example currently demonstrates only order placement via
+        # on-chain transactions using ClientOrderExecutor.
+        # If you need real-time streaming, you will need to implement
+        # your own WebSocket client against the Kuru WebSocket API.
 
     async def shutdown(self, sig):
         print(f"\nReceived exit signal {sig.name}...")
@@ -222,7 +213,13 @@ class OrderExecutor:
                 print("Client disconnected.")
 
 async def main():
-    executor = OrderExecutor()
+    network_config = NetworkConfig(
+        rpc_url=NETWORK_RPC,
+        websocket_url=os.getenv("WEBSOCKET_URL", MONAD_MAINNET.websocket_url),
+        chain_id=MONAD_MAINNET.chain_id,
+    )
+
+    executor = OrderExecutor(network_config=network_config)
     await executor.run()
 
 if __name__ == "__main__":

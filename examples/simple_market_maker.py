@@ -7,7 +7,6 @@ import uuid
 project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
-from kuru_sdk.websocket_handler import WebSocketHandler
 from kuru_sdk.types import OrderCancelledPayload, OrderCreatedPayload, OrderRequest, TradePayload
 from kuru_sdk.client_order_executor import ClientOrderExecutor
 
@@ -49,7 +48,6 @@ def get_random_price(mean, std_dev):
 class MarketMakerBot:
     def __init__(self):
         self.client = None
-        self.ws_client = None
         self.shutdown_event = None
         self.cloid_to_order = {} # Stores the original OrderRequest
         self.order_id_to_cloid = {} # Maps Kuru order ID back to client order ID
@@ -133,28 +131,12 @@ class MarketMakerBot:
             private_key=PK,
         )
 
-        # Ensure market params are fetched before initializing WebSocketHandler
+        # Ensure market params are fetched before placing orders
         if not self.client.orderbook.market_params:
              await self.client.orderbook.fetch_market_params()
              if not self.client.orderbook.market_params:
                  print("Error: Failed to fetch market parameters.")
                  sys.exit(1)
-
-
-        ws_url = f"wss://ws.testnet.kuru.io" 
-
-        self.ws_client = WebSocketHandler(
-            websocket_url=ws_url,
-            market_address=ADDRESSES['orderbook'],
-            market_params=self.client.orderbook.market_params,
-            on_order_created=self.on_order_created,
-            on_trade=self.on_trade,
-            on_order_cancelled=self.on_order_cancelled,
-        )
-
-        print("Connecting to WebSocket...")
-        await self.ws_client.connect()
-        print("WebSocket connected.")
 
         # Add signal handlers for graceful shutdown
         loop = asyncio.get_running_loop()
@@ -168,14 +150,8 @@ class MarketMakerBot:
         # Cancel active orders before disconnecting
         await self.cancel_all_active_orders()
 
-        print("Disconnecting WebSocket client...")
-        if self.ws_client:
-            try:
-                await self.ws_client.disconnect()
-                print("WebSocket client disconnected.")
-            except Exception as e:
-                print(f"Error during WebSocket disconnect: {e}")
-        
+        print("Shutting down without WebSocket client...")
+
         if not self.shutdown_event.done():
              self.shutdown_event.set_result(True)
 

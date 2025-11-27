@@ -7,7 +7,6 @@ sys.path.append(project_root)
 
 from kuru_sdk.types import OrderRequest, TxOptions
 from kuru_sdk.client_order_executor import ClientOrderExecutor
-from kuru_sdk.websocket_handler import WebSocketHandler
 from web3 import Web3
 import os
 import asyncio
@@ -43,20 +42,6 @@ async def main():
     # Get address from private key
     account_address = client.web3.eth.account.from_key(os.getenv("PK")).address
     
-    ws_url = f"wss://ws.testnet.kuru.io"
-    ws_client = WebSocketHandler(
-        client_order_executor=client,
-        websocket_url=ws_url,
-        market_address=account_address,  # Using address derived from private key
-        market_params=client.orderbook.market_params,
-        on_order_created=lambda payload: print(f"Order created: {payload}"),
-        on_trade=lambda payload: print(f"Trade: {payload}"),
-        on_order_cancelled=lambda payload: print(f"Order cancelled: {payload}"),
-        logger=False
-    )
-
-    await ws_client.connect()
-
     async def shutdown(sig):
         print(f"\nReceived exit signal {sig.name}...")
         print("Disconnecting client...")
@@ -78,8 +63,7 @@ async def main():
         loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s)))
 
     try:
-        print("Connecting client...")
-        print("Client connected.")
+        print("Client initialized.")
 
         # Single order
         orders = [
@@ -114,37 +98,15 @@ async def main():
 
         print("Order placed. Running indefinitely. Press Ctrl+C to exit.")
 
-        # Wait 5 seconds before checking order
+        # Wait a bit before checking order
         await asyncio.sleep(10)
         print(f"Exchange OrderId: {client.get_order_id_by_cloid(cloid)}")
         print(f"Order: {client.get_order_by_cloid(cloid)}")
-
-        # Cancel order
-        cancel_orders = OrderRequest(
-            market_address=ADDRESSES['orderbook'],
-            order_type='cancel',
-            cancel_cloids=[cloid]
-        )
-        tx_options.nonce += 1
-
-        start_time = time.time()
-        cancel_cloids = await client.batch_orders([cancel_orders], tx_options, async_execution=True)
-        end_time = time.time()
-        execution_time = end_time - start_time
-
-        print(f"Cancel Cloid: {cancel_cloids[0]}")
-        print(f"Order cancellation took {execution_time:.4f} seconds")
-
-        await asyncio.sleep(10)
-        print(f"Exchange OrderId: {client.get_order_id_by_cloid(cloid)}")
-        print(f"Order: {client.get_order_by_cloid(cancel_cloids[0])}")
-        print(f"Limit Order: {client.get_order_by_cloid(cloid)}")
         await shutdown_event
 
     except asyncio.CancelledError:
         print("Main task cancelled.")
     finally:
-        # Ensure disconnect is called even if there's an error before shutdown_event is awaited
         if not shutdown_event.done():
             print("Performing cleanup due to unexpected exit...")
 

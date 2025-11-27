@@ -80,7 +80,7 @@ class MarginAccount:
                 })
                 signed_tx = self.web3.eth.account.sign_transaction(allowance_tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, poll_latency=1.0)
                 print(f"Approval transaction hash: {receipt.transactionHash.hex()}")
         
         # Build transaction
