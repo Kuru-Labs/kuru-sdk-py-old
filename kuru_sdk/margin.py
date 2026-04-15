@@ -76,7 +76,7 @@ class MarginAccount:
                 print("Approving tokens for deposit...")
                 allowance_tx = token_contract.functions.approve(self.contract_address, amount).build_transaction({
                     'from': self.wallet_address,
-                    'nonce': self.web3.eth.get_transaction_count(self.wallet_address),
+                    'nonce': self.web3.eth.get_transaction_count(self.wallet_address, "pending"),
                 })
                 signed_tx = self.web3.eth.account.sign_transaction(allowance_tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
@@ -95,7 +95,7 @@ class MarginAccount:
         
         # Get gas estimate and nonce
         gas_estimate = transaction.estimate_gas({'from': self.wallet_address, 'value': value})
-        nonce = self.web3.eth.get_transaction_count(self.wallet_address)
+        nonce = self.web3.eth.get_transaction_count(self.wallet_address, "pending")
         
         # Build transaction dict
         transaction_dict = {
@@ -146,7 +146,7 @@ class MarginAccount:
         
         # Get gas estimate and nonce
         gas_estimate = transaction.estimate_gas({'from': self.wallet_address})
-        nonce = self.web3.eth.get_transaction_count(self.wallet_address)
+        nonce = self.web3.eth.get_transaction_count(self.wallet_address, "pending")
         
         # Build transaction dict
         transaction_dict = {
